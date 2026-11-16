@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스네이크 드래프트 시스템 (감독 6명 + 5포지션 30명 = 총 36명)</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.4);
+      --border: #334155;
+
+      /* 티어 컬러 */
+      --tier-S: #ef4444;
+      --tier-A: #f97316;
+      --tier-B: #eab308;
+      --tier-C: #22c55e;
+      --tier-D: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    header {
+      background: #020617;
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #020617;
+    }
+    .btn-primary:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .container {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ================= 설정 화면 (SETUP) ================= */
+    .setup-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .setup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .setup-header h2 {
+      font-size: 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg-dark);
+      color: var(--accent);
+    }
+
+    /* 6명씩 딱 떨어지는 그리드 */
+    .grid-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .grid-6 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    @media (max-width: 600px) {
+      .grid-6 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .setup-card {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.2s;
+    }
+
+    /* 정사각형 이미지 업로더 */
+    .img-upload-box {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #1e293b;
+      border: 2px dashed #475569;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s;
+    }
+
+    .img-upload-box:hover {
+      border-color: var(--accent);
+    }
+
+    .img-upload-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .img-upload-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(2, 6, 23, 0.78);
+      color: #fff;
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 4px 0;
+      font-weight: 600;
+    }
+
+    .setup-card input[type="text"] {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.92rem;
+      text-align: center;
+      font-weight: 700;
+    }
+    .setup-card input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* 티어 선택 버튼 그룹 */
+    .tier-selector {
+      display: flex;
+      width: 100%;
+      gap: 4px;
+    }
+
+    .tier-btn {
+      flex: 1;
+      padding: 5px 0;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tier-btn.active[data-tier="S"] { background: var(--tier-S); color: #fff; border-color: var(--tier-S); }
+    .tier-btn.active[data-tier="A"] { background: var(--tier-A); color: #fff; border-color: var(--tier-A); }
+    .tier-btn.active[data-tier="B"] { background: var(--tier-B); color: #000; border-color: var(--tier-B); }
+    .tier-btn.active[data-tier="C"] { background: var(--tier-C); color: #fff; border-color: var(--tier-C); }
+    .tier-btn.active[data-tier="D"] { background: var(--tier-D); color: #fff; border-color: var(--tier-D); }
+
+    /* 포지션별 줄 구분 */
+    .pos-row-wrapper {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .pos-row-wrapper:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .pos-header-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .pos-name-input {
+      background: #020617;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-weight: 900;
+      font-size: 1rem;
+      padding: 6px 12px;
+      border-radius: 8px;
+      width: 160px;
+    }
+
+    /* ================= 드래프트 진행 화면 (DRAFT) ================= */
+    .turn-banner {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .turn-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .turn-captain-img {
+      width: 72px;
+      height: 72px;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid var(--accent);
+    }
+
+    .turn-text h2 {
+      font-size: 1.3rem;
+      color: var(--accent);
+    }
+
+    .turn-text p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* 스네이크 순서 미리보기 바 */
+    .snake-order-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 8px 0;
+      margin-bottom: 20px;
+    }
+
+    .snake-step {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .snake-step.active {
+      background: var(--accent);
+      color: #020617;
+      font-weight: 800;
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .snake-step.done {
+      opacity: 0.4;
+      text-decoration: line-through;
+    }
+
+    /* 실시간 팀 빌딩 현황 (가로 6열 나란히 정렬) */
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .teams-horizontal-board {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 1150px) {
+      .teams-horizontal-board {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 12px;
+      }
+      .team-column {
+        flex: 0 0 230px;
+        scroll-snap-align: start;
+      }
+    }
+
+    .team-column {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      transition: all 0.25s;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .team-column.current-pick {
+      border-color: var(--accent);
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+
+    /* 감독 영역 (큼직한 정사각형 이미지) */
+    .team-captain-header {
+      background: var(--bg-dark);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .captain-square-img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .captain-name {
+      font-weight: 800;
+      font-size: 1.05rem;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .captain-role-tag {
+      font-size: 0.74rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* 뽑힌 팀원 5명 슬롯 (큼직한 정사각형 이미지가 잘 보이게 2열 배치) */
+    .team-roster-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .roster-slot {
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      position: relative;
+    }
+
+    .roster-slot.empty {
+      border-style: dashed;
+      opacity: 0.5;
+      aspect-ratio: 1 / 1.28;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      gap: 2px;
+    }
+
+    .roster-square-img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+
+    .roster-player-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .roster-pos-sub {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .roster-tier-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      font-size: 0.7rem;
+      font-weight: 900;
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.7);
+    }
+
+    /* 참가자 풀 (5개 포지션별 줄맞춤) */
+    .pool-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .pool-pos-row {
+      display: flex;
+      align-items: stretch;
+      gap: 14px;
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .pool-pos-row:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    @media (max-width: 768px) {
+      .pool-pos-row {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+
+    .pool-pos-badge {
+      flex: 0 0 92px;
+      background: #020617;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.05rem;
+      color: var(--accent);
+      text-align: center;
+      padding: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .pool-pos-badge {
+        flex: none;
+        padding: 8px 14px;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+
+    .pool-players-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .pool-players-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    @media (max-width: 500px) {
+      .pool-players-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .player-card {
+      background: var(--bg-dark);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .player-card:hover:not(.picked):not(.pos-locked) {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.45);
+    }
+
+    .player-card.picked {
+      opacity: 0.35;
+      cursor: not-allowed;
+      filter: grayscale(100%);
+    }
+
+    /* 현재 감독이 이미 해당 포지션을 뽑았을 때 시각적 안내 */
+    .player-card.pos-locked:not(.picked) {
+      opacity: 0.55;
+    }
+
+    .player-square-img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .player-card-tier {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 5px;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.75);
+    }
+
+    .player-card-name {
+      font-weight: 800;
+      font-size: 0.94rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .picked-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.7);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.95rem;
+      color: #fff;
+    }
+
+    /* 완료 배너 */
+    .complete-banner {
+      background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+      border: 2px solid #34d399;
+      border-radius: 14px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .complete-banner h2 {
+      font-size: 1.5rem;
+      color: #6ee7b7;
+      margin-bottom: 8px;
+    }
+
+    .toggle-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      background: var(--bg-dark);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🐍 SNAKE DRAFT ARENA</h1>
+    <div style="display: flex; gap: 8px;">
+      <button id="btnUndo" class="btn btn-secondary hidden" onclick="undoPick()">↩️ 이전 픽 취소</button>
+      <button id="btnResetTop" class="btn btn-danger hidden" onclick="resetToSetup()">🔄 처음으로</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ==================== 1. 참가자 & 감독 세팅 화면 ==================== -->
+    <div id="setupView">
+      <div class="setup-section">
+        <div class="setup-header">
+          <h2>👑 감독 설정 <span class="badge">6명 (각 팀의 1번 멤버)</span></h2>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="fillDummyData()">🎲 샘플 데이터 채우기</button>
+            <button class="btn btn-primary" onclick="startDraft()">🚀 드래프트 시작하기</button>
+          </div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 14px;">
+          * 감독 6명 + 5개 포지션별 참가자 30명 = <strong>전체 36명</strong>이 <strong>6명씩 6개 팀</strong>으로 구성됩니다.
+        </p>
+        <div id="captainsSetupGrid" class="grid-6"></div>
+      </div>
+
+      <div class="setup-section">
+        <div class="setup-header">
+          <h2>⚔️ 포지션별 참가자 설정 <span class="badge">5개 포지션 × 각 6명 = 30명</span></h2>
+          <label class="toggle-box">
+            <input type="checkbox" id="chkOnePerPos" checked />
+            <span>한 팀당 포지션별 1명씩만 뽑기 제한</span>
+          </label>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 16px;">
+          * 각 참가자의 <strong>정사각형 이미지, 이름, 티어(S / A / B / C / D)</strong>를 자유롭게 설정할 수 있습니다. (포지션 이름도 직접 수정 가능)
+        </p>
+        <div id="playersSetupContainer"></div>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn btn-primary" style="padding: 14px 36px; font-size: 1.1rem;" onclick="startDraft()">
+          🚀 스네이크 드래프트 시작하기
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 2. 실시간 드래프트 화면 ==================== -->
+    <div id="draftView" class="hidden">
+
+      <!-- 완료 배너 -->
+      <div id="completeBanner" class="complete-banner hidden">
+        <h2>🎉 6개 팀(팀당 6명, 총 36명) 빌딩이 완료되었습니다!</h2>
+        <p style="margin-bottom: 16px; color: #d1fae5;">모든 감독과 포지션별 팀원 선발이 끝났습니다.</p>
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="restartSameMembers()">🔁 같은 멤버로 다시 뽑기</button>
+          <button class="btn btn-primary" onclick="resetToSetup()">🏠 처음으로 돌아가기 (명단/티어 수정)</button>
+        </div>
+      </div>
+
+      <!-- 현재 픽 순서 안내 배너 -->
+      <div id="turnBanner" class="turn-banner">
+        <div class="turn-info">
+          <img id="turnCaptainImg" class="turn-captain-img" src="" alt="감독" />
+          <div class="turn-text">
+            <p id="turnRoundInfo">ROUND 1 · PICK 1 / 30</p>
+            <h2 id="turnCaptainName">감독 1님의 선택 차례입니다!</h2>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="shuffleCaptainOrder()">🔀 감독 순서 랜덤 섞기</button>
+        </div>
+      </div>
+
+      <!-- 전체 스네이크 픽 진행 바 -->
+      <div id="snakeOrderBar" class="snake-order-bar"></div>
+
+      <!-- 실시간 팀 빌딩 현황 (가로 6열 나란히 배치) -->
+      <div class="section-title">
+        <span>📊 실시간 팀 빌딩 현황 (감독 1 + 포지션별 5 = 팀당 6명)</span>
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">← 모바일에서는 좌우로 스크롤하세요 →</span>
+      </div>
+      <div id="teamsBoard" class="teams-horizontal-board"></div>
+
+      <!-- 포지션별 참가자 선택 보드 -->
+      <div class="section-title">
+        <span>🎯 포지션별 참가자 보드 (클릭하여 선발)</span>
+      </div>
+      <div id="playerPoolBoard" class="pool-section"></div>
+
+    </div>
+  </div>
+
+  <input type="file" id="hiddenFileInput" accept="image/*" class="hidden" />
+
+  <script>
+    const TIER_COLORS = {
+      S: '#ef4444',
+      A: '#f97316',
+      B: '#eab308',
+      C: '#22c55e',
+      D: '#3b82f6'
+    };
+    const TIER_LIST = ['S', 'A', 'B', 'C', 'D'];
+
+    // 5개 포지션 (각 6명씩 = 30명)
+    let positions = [
+      { id: 'pos_0', name: 'TOP' },
+      { id: 'pos_1', name: 'JUG' },
+      { id: 'pos_2', name: 'MID' },
+      { id: 'pos_3', name: 'ADC' },
+      { id: 'pos_4', name: 'SUP' }
+    ];
+
+    let captains = []; // 6명
+    let players = [];  // 30명 (5포지션 × 6명) -> 감독 포함 총 36명
+    let snakeSequence = []; // 총 30픽 (5라운드 × 6감독)
+    let currentPickIndex = 0;
+    let pickHistory = [];
+    let currentUploadTarget = null;
+    let enforceOnePerPosition = true;
+
+    function getDefaultAvatar(text, bgColor = '#334155') {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+        <rect width="300" height="300" fill="${bgColor}"/>
+        <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-weight="bold" font-size="38">${text}</text>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    function initData() {
+      captains = Array.from({ length: 6 }, (_, i) => ({
+        id: `cap_${i}`,
+        name: `감독 ${i + 1}`,
+        img: getDefaultAvatar(`감독 ${i + 1}`, '#0284c7'),
+        roster: []
+      }));
+
+      players = [];
+      positions.forEach((pos, pIdx) => {
+        for (let i = 1; i <= 6; i++) {
+          const defaultTier = TIER_LIST[Math.min(i - 1, 4)]; // 예시로 S, A, B, C, D, D 자동 배분
+          const pName = `${pos.name} 참가자${i}`;
+          players.push({
+            id: `p_${pIdx}_${i}`,
+            posIndex: pIdx,
+            name: pName,
+            tier: defaultTier,
+            img: getDefaultAvatar(pName, '#1e293b'),
+            pickedBy: null
+          });
+        }
+      });
+
+      renderSetupView();
+    }
+
+    function renderSetupView() {
+      // 1. 감독 6명 세팅
+      const capGrid = document.getElementById('captainsSetupGrid');
+      capGrid.innerHTML = '';
+
+      captains.forEach((cap, idx) => {
+        const card = document.createElement('div');
+        card.className = 'setup-card';
+        card.innerHTML = `
+          <div class="img-upload-box" onclick="triggerImageUpload('captain', ${idx})">
+            <img src="${cap.img}" alt="${cap.name}" />
+            <div class="img-upload-overlay">📷 사진 넣기</div>
+          </div>
+          <input type="text" value="${cap.name}" placeholder="감독 이름" onchange="updateCaptainName(${idx}, this.value)" />
+        `;
+        capGrid.appendChild(card);
+      });
+
+      // 2. 포지션 5줄 × 6명 세팅
+      const poolContainer = document.getElementById('playersSetupContainer');
+      poolContainer.innerHTML = '';
+
+      positions.forEach((pos, pIdx) => {
+        const posPlayers = players.filter(p => p.posIndex === pIdx);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pos-row-wrapper';
+
+        let cardsHtml = '';
+        posPlayers.forEach((p) => {
+          const globalIdx = players.findIndex(item => item.id === p.id);
+          const tierButtonsHtml = TIER_LIST.map(t => `
+            <button type="button"
+              class="tier-btn ${p.tier === t ? 'active' : ''}"
+              data-tier="${t}"
+              onclick="updatePlayerTier(${globalIdx}, '${t}')">${t}</button>
+          `).join('');
+
+          cardsHtml += `
+            <div class="setup-card" style="border-color: ${TIER_COLORS[p.tier]};">
+              <div class="img-upload-box" onclick="triggerImageUpload('player', ${globalIdx})">
+                <img src="${p.img}" alt="${p.name}" />
+                <div class="img-upload-overlay">📷 사진 넣기</div>
+              </div>
+              <input type="text" value="${p.name}" placeholder="참가자 이름" onchange="updatePlayerName(${globalIdx}, this.value)" />
+              <div class="tier-selector">
+                ${tierButtonsHtml}
+              </div>
+            </div>
+          `;
+        });
+
+        wrapper.innerHTML = `
+          <div class="pos-header-bar">
+            <input type="text" class="pos-name-input" value="${pos.name}" onchange="updatePositionName(${pIdx}, this.value)" title="포지션 이름을 클릭해 수정할 수 있습니다" />
+            <span style="color: var(--text-muted); font-size: 0.85rem;">라인 참가자 (6명)</span>
+          </div>
+          <div class="grid-6">${cardsHtml}</div>
+        `;
+        poolContainer.appendChild(wrapper);
+      });
+    }
+
+    function updatePositionName(pIdx, val) {
+      positions[pIdx].name = val.trim() || `라인 ${pIdx + 1}`;
+    }
+
+    function updateCaptainName(idx, val) {
+      captains[idx].name = val.trim() || `감독 ${idx + 1}`;
+    }
+
+    function updatePlayerName(idx, val) {
+      players[idx].name = val.trim() || `참가자 ${idx + 1}`;
+    }
+
+    function updatePlayerTier(idx, newTier) {
+      players[idx].tier = newTier;
+      renderSetupView();
+    }
+
+    // 이미지 업로드 처리
+    function triggerImageUpload(type, index) {
+      currentUploadTarget = { type, index };
+      const fileInput = document.getElementById('hiddenFileInput');
+      fileInput.value = '';
+      fileInput.click();
+    }
+
+    document.getElementById('hiddenFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file || !currentUploadTarget) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const dataUrl = event.target.result;
+        if (currentUploadTarget.type === 'captain') {
+          captains[currentUploadTarget.index].img = dataUrl;
+        } else {
+          players[currentUploadTarget.index].img = dataUrl;
+        }
+        renderSetupView();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 샘플 데이터 채우기
+    function fillDummyData() {
+      const sampleCaps = ['페이커', '데프트', '쵸비', '쇼메이커', '케리아', '구마유시'];
+      captains.forEach((c, i) => {
+        c.name = sampleCaps[i];
+        c.img = getDefaultAvatar(sampleCaps[i], '#0369a1');
+      });
+
+      const sampleByPos = [
+        ['제우스', '기인', '도란', '킹겐', '모건', '퍼펙트'],
+        ['오너', '캐니언', '피넛', '표식', '커즈', '루시드'],
+        ['비디디', '제카', '불독', '클로저', '카리스', '페이트'],
+        ['바이퍼', '룰러', '에이밍', '테디', '덕담', '지우'],
+        ['리헨즈', '딜라이트', '베릴', '켈린', '폴루', '안딜']
+      ];
+      const sampleTiers = ['S', 'S', 'A', 'B', 'C', 'D'];
+
+      players.forEach((p) => {
+        const orderInPos = parseInt(p.id.split('_')[2], 10) - 1;
+        const name = sampleByPos[p.posIndex][orderInPos];
+        const tier = sampleTiers[orderInPos];
+        p.name = name;
+        p.tier = tier;
+        p.img = getDefaultAvatar(name, TIER_COLORS[tier]);
+      });
+
+      renderSetupView();
+    }
+
+    // 스네이크 순서 생성 (5라운드 × 6감독 = 30픽)
+    function buildSnakeSequence() {
+      snakeSequence = [];
+      const totalRounds = 5; // 감독 1명당 5개 포지션에서 1명씩 뽑아 감독 포함 6명 완성
+      for (let round = 0; round < totalRounds; round++) {
+        if (round % 2 === 0) {
+          for (let i = 0; i < 6; i++) snakeSequence.push(i);
+        } else {
+          for (let i = 5; i >= 0; i--) snakeSequence.push(i);
+        }
+      }
+    }
+
+    function startDraft() {
+      enforceOnePerPosition = document.getElementById('chkOnePerPos').checked;
+      captains.forEach(c => c.roster = []);
+      players.forEach(p => p.pickedBy = null);
+      currentPickIndex = 0;
+      pickHistory = [];
+      buildSnakeSequence();
+
+      document.getElementById('setupView').classList.add('hidden');
+      document.getElementById('draftView').classList.remove('hidden');
+      document.getElementById('btnResetTop').classList.remove('hidden');
+      document.getElementById('btnUndo').classList.remove('hidden');
+      document.getElementById('completeBanner').classList.add('hidden');
+      document.getElementById('turnBanner').classList.remove('hidden');
+
+      renderDraftView();
+    }
+
+    function shuffleCaptainOrder() {
+      if (currentPickIndex > 0) {
+        if (!confirm('진행 중인 픽이 초기화됩니다. 감독 순서를 섞고 처음부터 다시 시작할까요?')) return;
+      }
+      for (let i = captains.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [captains[i], captains[j]] = [captains[j], captains[i]];
+      }
+      startDraft();
+    }
+
+    function selectPlayer(playerId) {
+      if (currentPickIndex >= snakeSequence.length) return;
+
+      const player = players.find(p => p.id === playerId);
+      if (!player || player.pickedBy !== null) return;
+
+      const capIndex = snakeSequence[currentPickIndex];
+      const captain = captains[capIndex];
+
+      // 포지션 중복 제한 옵션이 켜져 있는 경우 체크
+      if (enforceOnePerPosition) {
+        const alreadyHasPos = captain.roster.some(m => m.posIndex === player.posIndex);
+        if (alreadyHasPos) {
+          alert(`[${captain.name}] 감독님은 이미 '${positions[player.posIndex].name}' 포지션 선수를 선발했습니다!`);
+          return;
+        }
+      }
+
+      player.pickedBy = captain.id;
+      captain.roster.push(player);
+      pickHistory.push({ pickIndex: currentPickIndex, capIndex, playerId });
+
+      currentPickIndex++;
+      renderDraftView();
+    }
+
+    function undoPick() {
+      if (pickHistory.length === 0) return;
+      const last = pickHistory.pop();
+      const captain = captains[last.capIndex];
+      const player = players.find(p => p.id === last.playerId);
+
+      captain.roster = captain.roster.filter(p => p.id !== last.playerId);
+      player.pickedBy = null;
+      currentPickIndex = last.pickIndex;
+
+      document.getElementById('completeBanner').classList.add('hidden');
+      document.getElementById('turnBanner').classList.remove('hidden');
+      renderDraftView();
+    }
+
+    function renderDraftView() {
+      const isFinished = currentPickIndex >= snakeSequence.length;
+      const activeCapIndex = isFinished ? -1 : snakeSequence[currentPickIndex];
+      const activeCap = isFinished ? null : captains[activeCapIndex];
+
+      // 1. 상단 턴 배너
+      if (isFinished) {
+        document.getElementById('turnBanner').classList.add('hidden');
+        document.getElementById('completeBanner').classList.remove('hidden');
+      } else {
+        const roundNum = Math.floor(currentPickIndex / 6) + 1;
+        const pickInRound = (currentPickIndex % 6) + 1;
+
+        document.getElementById('turnCaptainImg').src = activeCap.img;
+        document.getElementById('turnRoundInfo').textContent = `ROUND ${roundNum} (${pickInRound}번째 픽) · 전체 ${currentPickIndex + 1} / 30 픽`;
+        document.getElementById('turnCaptainName').textContent = `🔥 [${activeCap.name}] 감독님의 선택 차례입니다!`;
+      }
+
+      // 2. 스네이크 순서 바
+      const orderBar = document.getElementById('snakeOrderBar');
+      orderBar.innerHTML = '';
+      snakeSequence.forEach((capIdx, idx) => {
+        const step = document.createElement('div');
+        step.className = 'snake-step';
+        if (idx < currentPickIndex) step.classList.add('done');
+        if (idx === currentPickIndex) step.classList.add('active');
+        const r = Math.floor(idx / 6) + 1;
+        step.textContent = `R${r}-${(idx % 6) + 1} ${captains[capIdx].name}`;
+        orderBar.appendChild(step);
+      });
+
+      const activeStepEl = orderBar.querySelector('.active');
+      if (activeStepEl) {
+        activeStepEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+
+      // 3. 실시간 팀 빌딩 현황 (가로 6열 나란히)
+      const teamsBoard = document.getElementById('teamsBoard');
+      teamsBoard.innerHTML = '';
+
+      captains.forEach((cap, idx) => {
+        const col = document.createElement('div');
+        col.className = 'team-column' + (idx === activeCapIndex ? ' current-pick' : '');
+
+        let rosterSlotsHtml = '';
+        // 포지션 순서대로 보여주거나 뽑힌 순서대로 보여주기
+        for (let s = 0; s < 5; s++) {
+          const member = enforceOnePerPosition
+            ? cap.roster.find(m => m.posIndex === s)
+            : cap.roster[s];
+
+          if (member) {
+            const tierBg = TIER_COLORS[member.tier];
+            const textColor = member.tier === 'B' ? '#000' : '#fff';
+            rosterSlotsHtml += `
+              <div class="roster-slot" style="border-color: ${tierBg};">
+                <span class="roster-tier-badge" style="background: ${tierBg}; color: ${textColor};">${member.tier}</span>
+                <img class="roster-square-img" src="${member.img}" alt="${member.name}" />
+                <div class="roster-pos-sub">${positions[member.posIndex].name}</div>
+                <div class="roster-player-name">${member.name}</div>
+              </div>
+            `;
+          } else {
+            const slotLabel = enforceOnePerPosition ? positions[s].name : `${s + 1}픽`;
+            rosterSlotsHtml += `
+              <div class="roster-slot empty">
+                <strong>${slotLabel}</strong>
+                <span>공석</span>
+              </div>
+            `;
+          }
+        }
+
+        col.innerHTML = `
+          <div class="team-captain-header">
+            <img class="captain-square-img" src="${cap.img}" alt="${cap.name}" />
+            <div class="captain-role-tag">TEAM ${idx + 1} 감독</div>
+            <div class="captain-name">${cap.name}</div>
+          </div>
+          <div class="team-roster-grid">
+            ${rosterSlotsHtml}
+          </div>
+        `;
+        teamsBoard.appendChild(col);
+      });
+
+      // 4. 포지션별 참가자 선택 보드 (5줄 × 6명)
+      const poolBoard = document.getElementById('playerPoolBoard');
+      poolBoard.innerHTML = '';
+
+      positions.forEach((pos, pIdx) => {
+        const posPlayers = players.filter(p => p.posIndex === pIdx);
+        const isPosAlreadyFilledForActiveCap = activeCap && enforceOnePerPosition
+          ? activeCap.roster.some(m => m.posIndex === pIdx)
+          : false;
+
+        const row = document.createElement('div');
+        row.className = 'pool-pos-row';
+
+        let playersHtml = '';
+        posPlayers.forEach((p) => {
+          const isPicked = p.pickedBy !== null;
+          const pickedCap = isPicked ? captains.find(c => c.id === p.pickedBy) : null;
+          const tierBg = TIER_COLORS[p.tier];
+          const textColor = p.tier === 'B' ? '#000' : '#fff';
+
+          playersHtml += `
+            <div class="player-card ${isPicked ? 'picked' : ''} ${isPosAlreadyFilledForActiveCap ? 'pos-locked' : ''}"
+                 style="border-color: ${isPicked ? 'var(--border)' : tierBg};"
+                 onclick="selectPlayer('${p.id}')">
+              <span class="player-card-tier" style="background: ${tierBg}; color: ${textColor};">${p.tier}</span>
+              <img class="player-square-img" src="${p.img}" alt="${p.name}" />
+              <div class="player-card-name">${p.name}</div>
+              ${isPicked ? `<div class="picked-overlay">✔ ${pickedCap ? pickedCap.name : '선발됨'}</div>` : ''}
+            </div>
+          `;
+        });
+
+        row.innerHTML = `
+          <div class="pool-pos-badge">
+            <span>${pos.name}</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 2px;">6명</span>
+          </div>
+          <div class="pool-players-grid">
+            ${playersHtml}
+          </div>
+        `;
+        poolBoard.appendChild(row);
+      });
+    }
+
+    function restartSameMembers() {
+      startDraft();
+    }
+
+    function resetToSetup() {
+      if (currentPickIndex > 0 && currentPickIndex < snakeSequence.length) {
+        if (!confirm('진행 중인 드래프트가 초기화되고 첫 화면으로 돌아갑니다. 계속할까요?')) return;
+      }
+      document.getElementById('draftView').classList.add('hidden');
+      document.getElementById('setupView').classList.remove('hidden');
+      document.getElementById('btnResetTop').classList.add('hidden');
+      document.getElementById('btnUndo').classList.add('hidden');
+      renderSetupView();
+    }
+
+    initData();
+  </script>
+</body>
+</html>
